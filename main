@@ -1,0 +1,326 @@
+<html>
+  <head>
+    <title>Mensaje Especial</title>
+    <style>
+body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        #contenedor-texto {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            min-height: 300px;
+        }
+        #reproductor {
+            margin: 25px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            transition: all 0.3s ease;
+        }
+        .boton-continuar {
+            background-color: #4a89dc;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+        .boton-continuar:hover {
+            background-color: #3b7dd8;
+        }
+        .instrucciones-video {
+            font-style: italic;
+            color: #666;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #333;
+            vertical-align: middle;
+            margin-left: 3px;
+            animation: parpadeo 0.7s infinite;
+        }
+        .opciones-video {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .opcion-video {
+            background-color: #5d9cec;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .opcion-video:hover {
+            background-color: #4a89dc;
+        }
+        .opcion-video.destacada {
+            background-color: #a0d468;
+            font-weight: bold;
+        }
+        .opcion-video.destacada:hover {
+            background-color: #8cc152;
+        }
+        .link-externo {
+            color: #4a89dc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .link-externo:hover {
+            text-decoration: underline;
+        }
+        .aviso-derechos {
+            background-color: #f2f2f2;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #e74c3c;
+            margin: 15px 0;
+        }
+        @keyframes parpadeo {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="contenedor-texto"></div>
+    <div id="reproductor"></div>
+    <div id="opciones-video" class="opciones-video" style="display:none;"></div>
+    <button id="continuar" class="boton-continuar" style="display:none;">Continuar con el mensaje</button>
+
+    <script>
+        class MensajeAnimado {
+            constructor() {
+                this.contenedor = document.getElementById('contenedor-texto');
+                this.reproductor = document.getElementById('reproductor');
+                this.opcionesVideo = document.getElementById('opciones-video');
+                this.botonContinuar = document.getElementById('continuar');
+                this.partes = [];
+                this.parteActual = 0;
+                this.indiceTexto = 0;
+                this.intervalo = null;
+            }
+
+            cargarMensaje(partes) {
+                this.partes = partes;
+                this.mostrarSiguienteParte();
+            }
+
+            mostrarSiguienteParte() {
+                if (this.parteActual >= this.partes.length) return;
+
+                const parte = this.partes[this.parteActual];
+                
+                if (parte.tipo === 'texto') {
+                    this.mostrarTextoGradualmente(parte.contenido, parte.velocidad);
+                } else if (parte.tipo === 'video') {
+                    this.mostrarOpcionesVideo(parte.opciones);
+                } else if (parte.tipo === 'video-simple') {
+                    this.reproducirVideo(parte);
+                } else if (parte.tipo === 'link-externo') {
+                    this.mostrarLinkExterno(parte);
+                }
+            }
+
+            mostrarTextoGradualmente(texto, velocidad) {
+                this.contenedor.innerHTML = '';
+                this.indiceTexto = 0;
+                
+                const elementoTexto = document.createElement('div');
+                this.contenedor.appendChild(elementoTexto);
+                
+                const cursor = document.createElement('span');
+                cursor.className = 'cursor';
+                this.contenedor.appendChild(cursor);
+                
+                clearInterval(this.intervalo);
+                this.intervalo = setInterval(() => {
+                    if (this.indiceTexto < texto.length) {
+                        elementoTexto.innerHTML += texto.charAt(this.indiceTexto);
+                        this.indiceTexto++;
+                        
+                        // Mover el cursor al final
+                        this.contenedor.removeChild(cursor);
+                        this.contenedor.appendChild(cursor);
+                        
+                        // Auto-scroll
+                        this.contenedor.scrollTop = this.contenedor.scrollHeight;
+
+                        // Detectar cuando llega a "con el corazón" para reducir velocidad
+                        const textoActual = elementoTexto.innerHTML;
+                        if (textoActual.includes("con el corazón") && velocidad === 40) {
+                            clearInterval(this.intervalo);
+                            this.intervalo = setInterval(() => {
+                                if (this.indiceTexto < texto.length) {
+                                    elementoTexto.innerHTML += texto.charAt(this.indiceTexto);
+                                    this.indiceTexto++;
+                                    this.contenedor.removeChild(cursor);
+                                    this.contenedor.appendChild(cursor);
+                                    this.contenedor.scrollTop = this.contenedor.scrollHeight;
+                                } else {
+                                    clearInterval(this.intervalo);
+                                    this.contenedor.removeChild(cursor);
+                                    setTimeout(() => {
+                                        this.parteActual++;
+                                        this.mostrarSiguienteParte();
+                                    }, 500);
+                                }
+                            }, 70); // Velocidad más lenta (70ms por carácter)
+                        }
+                    } else {
+                        clearInterval(this.intervalo);
+                        this.contenedor.removeChild(cursor);
+                        
+                        // Pequeña pausa antes de continuar
+                        setTimeout(() => {
+                            this.parteActual++;
+                            this.mostrarSiguienteParte();
+                        }, 500);
+                    }
+                }, velocidad);
+            }
+
+            mostrarOpcionesVideo(opciones) {
+                this.opcionesVideo.innerHTML = '';
+                this.opcionesVideo.style.display = 'flex';
+                this.botonContinuar.style.display = 'none';
+                this.reproductor.innerHTML = '<p class="instrucciones-video">Elige una versión para ver:</p>';
+                
+                opciones.forEach((opcion, index) => {
+                    const boton = document.createElement('button');
+                    boton.className = `opcion-video ${opcion.destacada ? 'destacada' : ''}`;
+                    boton.textContent = opcion.titulo;
+                    boton.onclick = () => {
+                        this.reproducirVideo(opcion);
+                        this.opcionesVideo.style.display = 'none';
+                    };
+                    this.opcionesVideo.appendChild(boton);
+                });
+            }
+
+            reproducirVideo(video) {
+                this.reproductor.innerHTML = `
+                    <iframe width="100%" height="400" src="${video.url}${video.inicio ? `?start=${video.inicio}&autoplay=1` : '?autoplay=1'}" 
+                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen></iframe>
+                    <p class="instrucciones-video">${video.titulo || ''}</p>
+                `;
+                
+                this.botonContinuar.style.display = 'block';
+                this.botonContinuar.onclick = () => {
+                    this.reproductor.innerHTML = '';
+                    this.botonContinuar.style.display = 'none';
+                    this.parteActual++;
+                    this.mostrarSiguienteParte();
+                };
+            }
+
+            mostrarLinkExterno(linkInfo) {
+                this.reproductor.innerHTML = `
+                    <div class="aviso-derechos">
+                        <p>⚠️ Por restricciones de derechos de autor, este video no puede reproducirse directamente aquí.</p>
+                        <p>Por favor haz clic en el siguiente enlace para verlo en YouTube (comienza en el minuto ${linkInfo.minuto}):</p>
+                        <p><a href="${linkInfo.url}" class="link-externo" target="_blank">${linkInfo.titulo || 'Ver video'}</a></p>
+                    </div>
+                `;
+                
+                this.botonContinuar.style.display = 'block';
+                this.botonContinuar.onclick = () => {
+                    this.reproductor.innerHTML = '';
+                    this.botonContinuar.style.display = 'none';
+                    this.parteActual++;
+                    this.mostrarSiguienteParte();
+                };
+            }
+        }
+
+        // Definición del mensaje con puntos exactos de pausa
+        const partesMensaje = [
+            {
+                tipo: 'texto',
+                contenido: "Bueno, no se si ella vaya a leer esto, de cualquier forma no hay problema pues no es algo que esté fuera de su conocimiento, sin embargo no se si dese aburrirse con pensamientos y maneras de filosofar mías, sabes mejor que nadie que es algo un poco cerrado y directo, suena reclamativo pero esa no es mi intención, lo que deseo es dar conocimiento de la situación y ya, aunque muy probablemente este vaya a ser algo largo debido a que considero que en lo posible sea el último texto que te enviare, el último mensaje, el punto final.\n\nMi querido amigo, jamas podre olvidar el dia que nos conocimos, si bien no puedo decir la fecha exacta pues en ese entonces andaba muy perdida en todo aspecto, agradezco al queridísimo padre y fundador del primer laboratorio de psicología Wilhelm Maximilian Wundt por habernos llevado al punto de conocernos en ese curso de prefacultativos, de allí en adelante fuiste quien escuchó mis penas, quien mas vió como poco a poco me perdia por la situacion de mi relacion, por mis amigos, mi colegio, como decaía, pero jamas dejaste que tocara fondo, te agradezco por cada momento en el que estuviste para mi y aunque me duela el habernos alejado por muchas cosas, siempre vas a tener un lugar en mi hipocampo (lugar del cerebro en el que se guardan los recuerdos), que aunque me hagas renegar por tu actitud algunas veces egoístas, fuiste un gran apoyo, eres ese acorde que casi no uso en mi ukulele pero que mejor suena, no puedo llamarte mi mejor amigo por muchas situaciones en las que no concordamos, lamento cada momento en el que quiza llegué a incomodarte o quizas no recordarte que eras importante para mi, y si ahora me voy no es porque seas una mierda o porque yo no me sienta con ganas de una amistad, es por mucho lo contrario, mi querida hermanita curioso mi telefono y leyo tu mensaje, vio que no lo habia leido y que lo habia comentado en el chat, ella lo leyo y me lo resumio, Eduardo, eres alguien importante para mi y como te dije, yo no pienso ser una gata rompe hogares y mucho menos ser la inseguridad de una señorita, mucho menos de la persona que amas y te hace feliz, quizas no sea perfecto y muchas veces (al menos en este ultimo tiempo) te he debatido que es lo que pienso yo de el amor, sin embargo no quiero que eso ifluya en lo que tu piensas y sientes, sigue con ello si es sano, sigue si te hace crecer como persona, queiro que seas muy feliz, y lamento que no haya una cancion de Morat que hable al respecto, pero siempre tendras a alguien aqui, recuerda 'solo con el corazón se puede ver, lo esencial es invisible a los ojos' y si es que alguna vez te animas a ver Steven Universe, aunque te pierdas en la Luna, siempre pensare en ti, pues:",
+                velocidad: 30
+            },
+            {
+                tipo: 'video-simple',
+                url: "https://www.youtube.com/embed/gUk5zvwq1Rw",
+                titulo: "Primera parte - Cuando termines el video, haz clic en 'Continuar'"
+            },
+            {
+                tipo: 'video-simple',
+                url: "https://www.youtube.com/embed/eqcCpbar8gc",
+                titulo: "Segunda parte - Cuando termines el video, haz clic en 'Continuar'"
+            },
+            {
+                tipo: 'texto',
+                contenido: "Gracias por todos los momentos, buenos e incómodos, pues cada una de esas situaciones hizo que creciera como persona, me hizo razonar de una mejor manera, si en algún momento necesitas algo, lo que sea, aunque parezca imposible o difícil, dimelo porque estaré allí, eres alguien un poco menso jajaja, pero tambien se que eres como un cluster",
+                velocidad: 35
+            },
+            {
+                tipo: 'video',
+                opciones: [
+                    {
+                        url: "https://www.youtube.com/embed/58H2ls4khy8",
+                        titulo: "Versión en español",
+                        destacada: false
+                    },
+                    {
+                        url: "https://www.youtube.com/embed/dKkY94ZbJiQ",
+                        titulo: "Versión en inglés (recomendada)",
+                        destacada: true
+                    }
+                ]
+            },
+            {
+                tipo: 'texto',
+                contenido: "que a veces tiene ideas muy mezcladas, que como cualquier otro ser viviente, desea sentirse completo, pero eventualmente, podrás construir una burbujita de estabilidad mental y paz, de felicidad y armonía en tu interior y podrás conocer cada parte tuya, explorará cada rincón de tu ser y con el tiempo cambiar y mejorar, superar los malos momentos y poder avanzar, tu puedes, siempre has podido, solo es ponerle un poquito de voluntad, enserio espero que te vaya bien, aunque yo no vaya a estar muy segura… aunque no pueda estar allí para verlo, te deseo lo mejor en tus estudios, en tu familia, en tu noviazgo, que tu historia suene asi de bonito",
+                velocidad: 35
+            },
+            {
+                tipo: 'video-simple',
+                url: "https://www.youtube.com/embed/KYYMgR0thFA",
+                titulo: "Cuando termines el video, haz clic en 'Continuar'"
+            },
+            {
+                tipo: 'texto',
+                contenido: "que a pesar de todo puedas por un día pensar en lo positivo, y si algún día nos vemos tenemos que ir a empujar puertas para que nos persiga la policia,",
+                velocidad: 35
+            },
+            {
+                tipo: 'link-externo',
+                url: "https://youtu.be/m24htoJZH4Q?t=30",
+                titulo: "Ver escena especial (comienza en 0:30)",
+                minuto: "0:30"
+            },
+            {
+                tipo: 'texto',
+                contenido: "Me despido y te recalco que no es por rencor, por odio, porque seas mala persona o porque me sienta herida, sino porque considero que es lo mejor para ti, pues yo estoy muy consciente que jamas estuviste, pero siempre supe verte con el corazón, en esa bella flor que está en mi mesita que veo cada dia al despertar y antes de dormir, en los recuerdos que tengo de ti, en esos 20 centavos que te devolví, en cada pequeño momento en el que fui feliz y pude llamarte 'mi mejor amigo'. Se le quiere mucho, se le agradece todo, se lo extrañara mucho pero le deseo lo mejor.\n\nATT: Dani",
+                velocidad: 40 // Esta velocidad cambiará a 70ms al llegar a "con el corazón"
+            }
+        ];
+
+        // Iniciar el mensaje
+        const mensaje = new MensajeAnimado();
+        mensaje.cargarMensaje(partesMensaje);
+    </script>
+</body>
+</html>
